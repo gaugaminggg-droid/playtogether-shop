@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "PlayTogether Shop",
+  title: "ShopDucDuy",
   description: "Shop dịch vụ Play Together - nhanh, uy tín, giá hợp lý"
 };
 

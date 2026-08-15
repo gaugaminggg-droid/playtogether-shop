@@ -1,0 +1,231 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+
+type Deposit = {
+  id: number;
+  amount: number;
+  transfer_code: string;
+  status: string;
+  created_at: string;
+};
+
+type Transaction = {
+  id: number;
+  amount: number;
+  type: string;
+  reference_id: number | null;
+  note: string | null;
+  created_at: string;
+};
+
+export default function HistoryPage() {
+  const [deposits, setDeposits] = useState<Deposit[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  async function loadHistory() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+
+    const { data: depositData } = await supabase
+      .from("deposits")
+      .select(
+        "id, amount, transfer_code, status, created_at"
+      )
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    const { data: transactionData } = await supabase
+      .from("transactions")
+      .select(
+        "id, amount, type, reference_id, note, created_at"
+      )
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    setDeposits(depositData || []);
+    setTransactions(transactionData || []);
+
+    setLoading(false);
+  }
+
+  function depositStatus(status: string) {
+    if (status === "approved") {
+      return "✅ Đã duyệt";
+    }
+
+    if (status === "rejected") {
+      return "❌ Từ chối";
+    }
+
+    return "⏳ Chờ duyệt";
+  }
+
+  function transactionType(type: string) {
+    if (type === "deposit") {
+      return "💰 Nạp tiền";
+    }
+
+    if (type === "order") {
+      return "🛒 Đặt hàng";
+    }
+
+    if (type === "refund") {
+      return "↩️ Hoàn tiền";
+    }
+
+    return type;
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        Đang tải lịch sử...
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen p-6">
+
+      <div className="max-w-3xl mx-auto">
+
+        <Link
+          href="/account"
+          className="text-green-400"
+        >
+          ← Quay lại tài khoản
+        </Link>
+
+        <h1 className="text-3xl font-bold mt-6 mb-8">
+          📜 Lịch sử giao dịch
+        </h1>
+
+        <section className="mb-10">
+
+          <h2 className="text-xl font-bold mb-4">
+            💰 Lịch sử nạp tiền
+          </h2>
+
+          {deposits.length === 0 ? (
+            <div className="rounded-xl bg-zinc-900 p-5 text-zinc-400">
+              Chưa có giao dịch nạp tiền.
+            </div>
+          ) : (
+            <div className="space-y-4">
+
+              {deposits.map((deposit) => (
+                <div
+                  key={deposit.id}
+                  className="rounded-xl border border-zinc-800 bg-zinc-900 p-5"
+                >
+
+                  <div className="flex justify-between gap-4">
+
+                    <div>
+                      <p className="font-bold">
+                        {Number(
+                          deposit.amount
+                        ).toLocaleString("vi-VN")}₫
+                      </p>
+
+                      <p className="text-sm text-zinc-400">
+                        Mã: {deposit.transfer_code}
+                      </p>
+                    </div>
+
+                    <div>
+                      {depositStatus(
+                        deposit.status
+                      )}
+                    </div>
+
+                  </div>
+
+                  <p className="text-xs text-zinc-500 mt-3">
+                    {new Date(
+                      deposit.created_at
+                    ).toLocaleString("vi-VN")}
+                  </p>
+
+                </div>
+              ))}
+
+            </div>
+          )}
+
+        </section>
+
+        <section>
+
+          <h2 className="text-xl font-bold mb-4">
+            🧾 Lịch sử giao dịch
+          </h2>
+
+          {transactions.length === 0 ? (
+            <div className="rounded-xl bg-zinc-900 p-5 text-zinc-400">
+              Chưa có giao dịch.
+            </div>
+          ) : (
+            <div className="space-y-4">
+
+              {transactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="rounded-xl border border-zinc-800 bg-zinc-900 p-5"
+                >
+
+                  <div className="flex justify-between">
+
+                    <p className="font-bold">
+                      {transactionType(
+                        transaction.type
+                      )}
+                    </p>
+
+                    <p className="font-bold">
+                      {Number(
+                        transaction.amount
+                      ).toLocaleString("vi-VN")}₫
+                    </p>
+
+                  </div>
+
+                  {transaction.note && (
+                    <p className="text-zinc-400 mt-2">
+                      {transaction.note}
+                    </p>
+                  )}
+
+                  <p className="text-xs text-zinc-500 mt-3">
+                    {new Date(
+                      transaction.created_at
+                    ).toLocaleString("vi-VN")}
+                  </p>
+
+                </div>
+              ))}
+
+            </div>
+          )}
+
+        </section>
+
+      </div>
+
+    </main>
+  );
+}

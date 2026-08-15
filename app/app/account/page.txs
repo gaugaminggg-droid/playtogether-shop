@@ -1,0 +1,160 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+
+type Profile = {
+  username: string;
+  display_name: string | null;
+  balance: number;
+  role: string;
+};
+
+export default function AccountPage() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadAccount();
+  }, []);
+
+  async function loadAccount() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("username, display_name, balance, role")
+      .eq("id", user.id)
+      .single();
+
+    if (error) {
+      console.error(error);
+      setLoading(false);
+      return;
+    }
+
+    setProfile(data);
+    setLoading(false);
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p>Đang tải tài khoản...</p>
+      </main>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p>Không tìm thấy thông tin tài khoản.</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen p-6">
+      <div className="max-w-2xl mx-auto">
+
+        <div className="mb-8">
+          <Link href="/" className="text-green-400">
+            ← Về trang chủ
+          </Link>
+        </div>
+
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+
+          <h1 className="text-3xl font-bold mb-6">
+            👤 Tài khoản
+          </h1>
+
+          <div className="space-y-4">
+
+            <div>
+              <p className="text-zinc-400">
+                Tên đăng nhập
+              </p>
+
+              <p className="text-xl font-semibold">
+                {profile.username}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-zinc-400">
+                Tên hiển thị
+              </p>
+
+              <p className="text-xl">
+                {profile.display_name || profile.username}
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-zinc-800 p-5">
+              <p className="text-zinc-400">
+                Số dư
+              </p>
+
+              <p className="text-3xl font-bold text-green-400">
+                {Number(profile.balance).toLocaleString("vi-VN")}₫
+              </p>
+            </div>
+
+            <div>
+              <p className="text-zinc-400">
+                Loại tài khoản
+              </p>
+
+              <p>
+                {profile.role === "admin"
+                  ? "👑 Quản trị viên"
+                  : "👤 Khách hàng"}
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+
+          <Link
+            href="/deposit"
+            className="rounded-xl bg-green-600 p-5 text-center font-bold"
+          >
+            💰 Nạp tiền
+          </Link>
+
+          <Link
+            href="/history"
+            className="rounded-xl bg-blue-600 p-5 text-center font-bold"
+          >
+            📜 Lịch sử giao dịch
+          </Link>
+
+        </div>
+
+        <button
+          onClick={logout}
+          className="w-full mt-6 rounded-xl bg-red-600 p-4 font-bold"
+        >
+          Đăng xuất
+        </button>
+
+      </div>
+    </main>
+  );
+}

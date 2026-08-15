@@ -1,87 +1,269 @@
+"use client";
+
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 const services = [
-  ["Cày tiền sao", "Cày tiền sao nhanh, nhận đơn theo gói.", "Từ 10K"],
-  ["Dắt thẻ", "Hỗ trợ dắt thẻ theo yêu cầu.", "Liên hệ"],
-  ["Làm cần quái vật", "Nhận làm cần quái vật.", "Liên hệ"],
-  ["Kim Cương Xanh", "Nhận kiếm KCX.", "Liên hệ"],
-  ["Kim Cương Đỏ", "Nhận kiếm KCD.", "Liên hệ"],
-  ["Câu bóng 6", "Nhận câu bóng 6.", "Liên hệ"],
-  ["Câu bóng 7", "Nhận câu bóng 7.", "Liên hệ"],
-  ["Cho thuê map trống", "Cho thuê map trống theo thời gian.", "Liên hệ"]
+  ["Cày tiền sao", "Cày tiền sao Play Together", 10000],
+  ["Đặt thẻ", "Hỗ trợ đặt thẻ theo yêu cầu", 10000],
+  ["Làm cần quái vật", "Nhận làm cần quái vật", 10000],
+  ["Kim Cương Xanh", "Nhận kiếm Kim Cương Xanh", 10000],
+  ["Kim Cương Đỏ", "Nhận kiếm Kim Cương Đỏ", 10000],
+  ["Câu bóng 6", "Nhận câu bóng 6", 10000],
+  ["Câu bóng 7", "Nhận câu bóng 7", 10000],
+  ["Cho thuê map trống", "Cho thuê map trống", 10000],
 ];
 
+type Profile = {
+  username: string;
+  display_name: string | null;
+  balance: number;
+};
+
 export default function Home() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      loadUser();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  async function loadUser() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("username, display_name, balance")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    setProfile(data);
+    setLoading(false);
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
+    setProfile(null);
+    window.location.href = "/";
+  }
+
   return (
-    <main>
-      <nav className="nav">
-        <div className="brand">PT<span>SHOP</span></div>
-        <div className="navlinks">
-          <Link href="/">Trang chủ</Link>
-          <a href="#services">Dịch vụ</a>
-          <a href="#contact">Liên hệ</a>
-          <Link href="/login">Đăng nhập</Link>
+    <main className="min-h-screen bg-zinc-950 text-white">
+      <nav className="border-b border-zinc-800 bg-zinc-950/95">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+          <Link href="/" className="text-xl font-bold">
+            PT<span className="text-green-500">SHOP</span>
+          </Link>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="hidden text-sm text-zinc-300 sm:block"
+            >
+              Trang chủ
+            </Link>
+
+            {loading ? (
+              <span className="text-sm text-zinc-500">
+                ...
+              </span>
+            ) : profile ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/account"
+                  className="rounded-xl bg-zinc-800 px-4 py-2 text-sm hover:bg-zinc-700"
+                >
+                  👤 {profile.display_name || profile.username}
+                </Link>
+
+                <Link
+                  href="/deposit"
+                  className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold hover:bg-green-500"
+                >
+                  💰 {Number(profile.balance || 0).toLocaleString("vi-VN")}đ
+                </Link>
+
+                <button
+                  onClick={logout}
+                  className="rounded-xl bg-red-500/10 px-3 py-2 text-sm text-red-400 hover:bg-red-500/20"
+                >
+                  Thoát
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Link
+                  href="/login"
+                  className="rounded-xl bg-zinc-800 px-4 py-2 text-sm"
+                >
+                  Đăng nhập
+                </Link>
+
+                <Link
+                  href="/register"
+                  className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold"
+                >
+                  Đăng ký
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
 
-      <section className="hero">
-        <div className="heroText">
-          <div className="badge">PLAY TOGETHER SERVICES</div>
-          <h1>SHOP <span>PLAY TOGETHER</span></h1>
-          <p>Cày thuê nhanh • Uy tín • Giá hợp lý</p>
-          <div className="actions">
-            <a className="btn primary" href="#services">ĐẶT DỊCH VỤ</a>
-            <a className="btn ghost" href="https://zalo.me/0849414809">ZALO 0849414809</a>
+      <section className="mx-auto max-w-6xl px-4 py-16">
+        <div className="grid gap-8 md:grid-cols-2 md:items-center">
+          <div>
+            <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-green-400">
+              PLAY TOGETHER SERVICES
+            </p>
+
+            <h1 className="text-4xl font-black leading-tight md:text-6xl">
+              SHOP
+              <span className="text-green-500">
+                {" "}PLAY TOGETHER
+              </span>
+            </h1>
+
+            <p className="mt-5 text-lg text-zinc-400">
+              Cày thuê nhanh chóng • Uy tín • Giá hợp lý
+            </p>
+
+            <div className="mt-7 flex flex-wrap gap-3">
+              <a
+                href="#services"
+                className="rounded-xl bg-green-600 px-5 py-3 font-semibold hover:bg-green-500"
+              >
+                Đặt dịch vụ
+              </a>
+
+              {profile ? (
+                <Link
+                  href="/account"
+                  className="rounded-xl border border-zinc-700 px-5 py-3"
+                >
+                  Tài khoản của tôi
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="rounded-xl border border-zinc-700 px-5 py-3"
+                >
+                  Đăng nhập
+                </Link>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="heroCard">
-          <div className="orb">PT</div>
-          <h3>ĐẶT ĐƠN NHANH</h3>
-          <p>Chọn dịch vụ → gửi thông tin → theo dõi trạng thái đơn.</p>
+
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
+            <div className="mb-5 text-5xl">🎮</div>
+
+            <h2 className="text-2xl font-bold">
+              ĐẶT ĐƠN NHANH
+            </h2>
+
+            <p className="mt-3 text-zinc-400">
+              Chọn dịch vụ → gửi thông tin → theo dõi trạng thái đơn hàng.
+            </p>
+
+            {profile && (
+              <div className="mt-6 rounded-2xl bg-zinc-800 p-4">
+                <p className="text-sm text-zinc-400">
+                  Xin chào
+                </p>
+
+                <p className="mt-1 text-xl font-bold">
+                  {profile.display_name || profile.username}
+                </p>
+
+                <p className="mt-3 text-sm text-zinc-400">
+                  Số dư
+                </p>
+
+                <p className="text-2xl font-bold text-green-400">
+                  {Number(profile.balance || 0).toLocaleString("vi-VN")}đ
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      <section id="services" className="section">
-        <div className="sectionHead">
-          <div>
-            <div className="eyebrow">DỊCH VỤ</div>
-            <h2>Dịch vụ nổi bật</h2>
-          </div>
-          <span className="count">{services.length} dịch vụ</span>
+      <section
+        id="services"
+        className="mx-auto max-w-6xl px-4 pb-20"
+      >
+        <div className="mb-8">
+          <p className="text-sm font-semibold text-green-400">
+            DỊCH VỤ
+          </p>
+
+          <h2 className="mt-2 text-3xl font-bold">
+            Dịch vụ nổi bật
+          </h2>
         </div>
 
-        <div className="grid">
-          {services.map(([name, desc, price]) => (
-            <article className="service" key={name}>
-              <div className="serviceIcon">★</div>
-              <h3>{name}</h3>
-              <p>{desc}</p>
-              <div className="serviceBottom">
-                <strong>{price}</strong>
-                <Link href={`/order?service=${encodeURIComponent(name)}`}>Đặt ngay →</Link>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {services.map(([name, description, price]) => (
+            <article
+              key={String(name)}
+              className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 transition hover:-translate-y-1 hover:border-green-500/50"
+            >
+              <div className="mb-4 text-3xl">
+                🎮
+              </div>
+
+              <h3 className="font-bold">
+                {name}
+              </h3>
+
+              <p className="mt-2 min-h-12 text-sm text-zinc-400">
+                {description}
+              </p>
+
+              <div className="mt-5 flex items-center justify-between">
+                <strong className="text-green-400">
+                  Từ {Number(price).toLocaleString("vi-VN")}đ
+                </strong>
+
+                <Link
+                  href={`/order?service=${encodeURIComponent(
+                    String(name)
+                  )}`}
+                  className="rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold"
+                >
+                  Đặt
+                </Link>
               </div>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="steps">
-        <div><b>01</b><span>Chọn dịch vụ</span></div>
-        <div><b>02</b><span>Gửi thông tin</span></div>
-        <div><b>03</b><span>Shop xử lý</span></div>
-        <div><b>04</b><span>Hoàn thành</span></div>
-      </section>
-
-      <section id="contact" className="contact">
-        <div>
-          <div className="eyebrow">HỖ TRỢ</div>
-          <h2>Cần tư vấn?</h2>
-          <p>Nhắn Zalo để kiểm tra giá và đặt slot.</p>
-        </div>
-        <a className="btn primary" href="https://zalo.me/0849414809">ZALO 0849414809</a>
-      </section>
-
-      <footer>© 2026 PTShop • Play Together Services</footer>
+      <footer className="border-t border-zinc-800 px-4 py-8 text-center text-sm text-zinc-500">
+        © 2026 PlayTogether Shop
+      </footer>
     </main>
   );
 }

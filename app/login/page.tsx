@@ -1,100 +1,116 @@
 "use client";
 
-import { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+export const dynamic = "force-dynamic";
+
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+
+function makeAuthEmail(username: string) {
+  return `${username.trim().toLowerCase()}@ptshop.local`;
+}
 
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleLogin(e: FormEvent) {
     e.preventDefault();
 
     setLoading(true);
+    setError("");
 
-    try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const authEmail = makeAuthEmail(username);
 
-      if (!supabaseUrl || !supabaseKey) {
-        alert("Lỗi cấu hình: Supabase URL hoặc Key không được tìm thấy");
-        setLoading(false);
-        return;
-      }
-
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+    const { error: loginError } =
+      await supabase.auth.signInWithPassword({
+        email: authEmail,
         password,
       });
 
+    if (loginError) {
+      setError("Tên đăng nhập hoặc mật khẩu không chính xác.");
       setLoading(false);
-
-      if (error) {
-        alert("Đăng nhập thất bại: " + error.message);
-        return;
-      }
-
-      alert("Đăng nhập thành công!");
-
-      router.push("/");
-      router.refresh();
-    } catch (error) {
-      console.error("Login error:", error);
-      alert("Lỗi không xác định. Vui lòng thử lại.");
-      setLoading(false);
+      return;
     }
-  };
+
+    router.push("/");
+    router.refresh();
+  }
 
   return (
-    <main className="min-h-screen flex items-center justify-center">
-      <div className="w-full max-w-md px-6">
-        <h1 className="mb-2 text-center text-3xl font-bold">
+    <main className="min-h-screen flex items-center justify-center bg-zinc-950 px-4">
+      <div className="w-full max-w-md rounded-2xl bg-zinc-900 p-6 shadow-xl">
+        <h1 className="mb-2 text-3xl font-bold text-white">
           Đăng nhập
         </h1>
 
-        <p className="mb-6 text-center">
-          ShopDucDuy
+        <p className="mb-6 text-zinc-400">
+          PlayTogether Shop
         </p>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl bg-zinc-800 px-4 py-3"
-            required
-          />
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-500/10 p-3 text-sm text-red-400">
+            {error}
+          </div>
+        )}
 
-          <input
-            type="password"
-            placeholder="Mật khẩu"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl bg-zinc-800 px-4 py-3"
-            required
-          />
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm text-zinc-300">
+              Tên đăng nhập
+            </label>
+
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="gaugaming"
+              required
+              autoComplete="username"
+              className="w-full rounded-xl bg-zinc-800 px-4 py-3 text-white outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm text-zinc-300">
+              Mật khẩu
+            </label>
+
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              autoComplete="current-password"
+              className="w-full rounded-xl bg-zinc-800 px-4 py-3 text-white outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-green-600 py-3 font-semibold"
+            className="w-full rounded-xl bg-green-600 py-3 font-semibold text-white hover:bg-green-500 disabled:opacity-50"
           >
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
         </form>
 
-        <p className="mt-6 text-center">
+        <p className="mt-6 text-center text-sm text-zinc-400">
           Chưa có tài khoản?{" "}
-          <a href="/register" className="text-green-400">
+          <Link
+            href="/register"
+            className="text-green-400 hover:underline"
+          >
             Đăng ký
-          </a>
+          </Link>
         </p>
       </div>
     </main>

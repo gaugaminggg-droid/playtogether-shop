@@ -207,7 +207,7 @@ insert into services(name,slug,description,price) values
 on conflict(slug) do nothing;
 
 insert into settings(key,value) values
-('shop_name','PTShop'),
+('shop_name','ShopDucDuy'),
 ('zalo','0849414809'),
 ('facebook','#'),
 ('discord','#'),
