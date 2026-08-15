@@ -1,26 +1,65 @@
 "use client";
 
 import { useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    alert("Đã nhận thông tin đăng nhập");
+    setLoading(true);
+
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseKey) {
+        alert("Lỗi cấu hình: Supabase URL hoặc Key không được tìm thấy");
+        setLoading(false);
+        return;
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      setLoading(false);
+
+      if (error) {
+        alert("Đăng nhập thất bại: " + error.message);
+        return;
+      }
+
+      alert("Đăng nhập thành công!");
+
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Lỗi không xác định. Vui lòng thử lại.");
+      setLoading(false);
+    }
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-black px-4">
-      <div className="w-full max-w-md rounded-2xl bg-zinc-900 p-6 shadow-xl">
-        <h1 className="mb-2 text-center text-3xl font-bold text-white">
+    <main className="min-h-screen flex items-center justify-center">
+      <div className="w-full max-w-md px-6">
+        <h1 className="mb-2 text-center text-3xl font-bold">
           Đăng nhập
         </h1>
 
-        <p className="mb-6 text-center text-zinc-400">
-          PlayTogether Shop
+        <p className="mb-6 text-center">
+          ShopDucDuy
         </p>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -29,7 +68,7 @@ export default function LoginPage() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl bg-zinc-800 px-4 py-3 text-white outline-none"
+            className="w-full rounded-xl bg-zinc-800 px-4 py-3"
             required
           />
 
@@ -38,19 +77,20 @@ export default function LoginPage() {
             placeholder="Mật khẩu"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl bg-zinc-800 px-4 py-3 text-white outline-none"
+            className="w-full rounded-xl bg-zinc-800 px-4 py-3"
             required
           />
 
           <button
             type="submit"
-            className="w-full rounded-xl bg-green-600 py-3 font-bold text-white"
+            disabled={loading}
+            className="w-full rounded-xl bg-green-600 py-3 font-semibold"
           >
-            Đăng nhập
+            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-zinc-400">
+        <p className="mt-6 text-center">
           Chưa có tài khoản?{" "}
           <a href="/register" className="text-green-400">
             Đăng ký
