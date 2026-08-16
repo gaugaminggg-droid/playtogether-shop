@@ -21,11 +21,18 @@ export default function RegisterPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleRegister(e: FormEvent) {
     e.preventDefault();
 
+    // Prevent multiple submissions (debounce)
+    if (isSubmitting) {
+      return;
+    }
+
     setError("");
+    setIsSubmitting(true);
 
     const cleanUsername = username.trim().toLowerCase();
 
@@ -33,16 +40,19 @@ export default function RegisterPage() {
       setError(
         "Tên đăng nhập phải từ 4-20 ký tự, chỉ gồm chữ thường, số và dấu _"
       );
+      setIsSubmitting(false);
       return;
     }
 
     if (password.length < 6) {
       setError("Mật khẩu phải có ít nhất 6 ký tự.");
+      setIsSubmitting(false);
       return;
     }
 
     if (password !== confirmPassword) {
       setError("Mật khẩu nhập lại không giống nhau.");
+      setIsSubmitting(false);
       return;
     }
 
@@ -62,14 +72,28 @@ export default function RegisterPage() {
     });
 
     if (signUpError) {
-      setError(signUpError.message);
+      // Handle rate limit error with user-friendly message
+      if (
+        signUpError.message.includes("rate_limit") ||
+        signUpError.message.includes("rate limit")
+      ) {
+        setError(
+          "Quá nhiều yêu cầu đăng ký. Vui lòng chờ 1 phút rồi thử lại."
+        );
+      } else if (signUpError.message.includes("already registered")) {
+        setError("Tên đăng nhập này đã tồn tại.");
+      } else {
+        setError(signUpError.message);
+      }
       setLoading(false);
+      setIsSubmitting(false);
       return;
     }
 
     if (!data.user) {
       setError("Không thể tạo tài khoản.");
       setLoading(false);
+      setIsSubmitting(false);
       return;
     }
 
@@ -85,9 +109,11 @@ export default function RegisterPage() {
         "Đăng ký thành công nhưng Supabase đang yêu cầu xác nhận email. Hãy tắt Confirm email trong Supabase Auth."
       );
       setLoading(false);
+      setIsSubmitting(false);
       return;
     }
 
+    // Success - redirect
     router.push("/");
     router.refresh();
   }
